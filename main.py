@@ -1,70 +1,51 @@
+import os
 import sys
 import pygame
-from PyQt5.QtWidgets import QApplication, QSlider, QLabel
-from PyQt5.uic import loadUi
+from PyQt5 import QtWidgets, uic
+from PyQt5.QtWidgets import QListWidgetItem
 
-# Initialize Pygame Mixer for MIDI Playback
+# Initialize Pygame Mixer
 pygame.mixer.init()
-pygame.mixer.music.set_volume(0.5)  # Default volume
-currentMidi = None
 
-def playMidi():
-    """Play a MIDI file."""
-    global currentMidi
-    midiFile = "test.mid"  # Replace with your MIDI file path
-    try:
-        # Stop any current playback before starting a new one
-        if currentMidi is not None:
-            stopMidi()
+class MainWindow(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        # Load the UI file
+        uic.loadUi('mainwindow.ui', self)
 
-        # Load and play the MIDI file
-        pygame.mixer.music.load(midiFile)
-        pygame.mixer.music.play()
-        currentMidi = midiFile
-        window.statusLabel.setText("Playing..")
-    except Exception as e:
-        window.statusLabel.setText(f"Error: {e}")
+        # Set up the MIDI directory
+        self.midi_dir = "./midi"
+        if not os.path.exists(self.midi_dir):
+            os.makedirs(self.midi_dir)
 
-def stopMidi():
-    """Stop MIDI playback."""
-    global currentMidi
-    try:
-        if currentMidi is not None:
-            pygame.mixer.music.stop()  # Stop playback
-            currentMidi = None
-        window.statusLabel.setText("Stopped")
-    except Exception as e:
-        window.statusLabel.setText(f"Error: {e}")
+        # Populate the list widget with MIDI files
+        self.populate_midi_list()
 
-def adjustVolume():
-    """Adjust volume based on the volume slider."""
-    volume = window.volumeSlider.value() / 100  # Slider value (0-100)
-    pygame.mixer.music.set_volume(volume)
-    window.volumeLabel.setText(f"Volume: {volume:.2f}")
+        # Connect the list widget's item click signal to the playback function
+        self.midiListWidget.itemClicked.connect(self.play_midi)
 
-def adjustPitch():
-    """Adjust pitch (not directly supported by Pygame, requires a workaround)."""
-    pitch = window.pitchSlider.value()
-    window.pitchLabel.setText(f"Pitch: {pitch}%")
-    # Unfortunately, Pygame does not natively support pitch adjustment.
-    # For advanced pitch shifting, you need a different library like PyDub or sounddevice.
+    def populate_midi_list(self):
+        """Populate the list widget with MIDI files."""
+        midi_files = [f for f in os.listdir(self.midi_dir) if f.endswith(".mid")]
+        self.midiListWidget.clear()  # Clear any existing items
+        for file in midi_files:
+            item = QListWidgetItem(file)
+            self.midiListWidget.addItem(item)
 
-# Application setup
-app = QApplication(sys.argv)
-window = loadUi("mainwindow.ui")
+    def play_midi(self, item):
+        """Play the selected MIDI file."""
+        midi_file = os.path.join(self.midi_dir, item.text())
+        try:
+            pygame.mixer.music.load(midi_file)
+            pygame.mixer.music.play()
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Playback Error", f"Error playing {midi_file}: {e}")
 
-# Connect buttons to actions
-window.playButton.clicked.connect(playMidi)
-window.stopButton.clicked.connect(stopMidi)
+def main():
+    app = QtWidgets.QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
 
-# Connect sliders to actions
-window.volumeSlider.valueChanged.connect(adjustVolume)  # Adjust volume
-window.pitchSlider.valueChanged.connect(adjustPitch)  # Adjust pitch (UI feedback only)
-
-# Set default slider values
-window.volumeSlider.setValue(50)  # Default volume: 50%
-window.pitchSlider.setValue(100)  # Default pitch: 100%
-
-# Show the application
-window.show()
-sys.exit(app.exec_())
+if __name__ == "__main__":
+    main()
