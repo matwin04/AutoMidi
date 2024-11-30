@@ -13,24 +13,39 @@ class MainWindow(QtWidgets.QMainWindow):
         # Load the UI file
         uic.loadUi('mainwindow.ui', self)
 
-        # Set up the MIDI directory
+        # Set up directories
         self.midi_dir = "./midi"
-        if not os.path.exists(self.midi_dir):
-            os.makedirs(self.midi_dir)
+        self.soundfont_dir = "./soundfonts"
+        for folder in [self.midi_dir, self.soundfont_dir]:
+            if not os.path.exists(folder):
+                os.makedirs(folder)
 
-        # Populate the list widget with MIDI files
+        # Populate the list widgets
         self.populate_midi_list()
+        self.populate_soundfont_list()
 
-        # Connect the list widget's item click signal to the playback function
+        # Connect list widget signals
         self.midiListWidget.itemClicked.connect(self.play_midi)
+        self.soundFontListWidget.itemClicked.connect(self.select_soundfont)
+
+        # Connect Quit button
+        self.quitButton.clicked.connect(self.close)
 
     def populate_midi_list(self):
-        """Populate the list widget with MIDI files."""
+        """Populate the MIDI list widget with MIDI files."""
         midi_files = [f for f in os.listdir(self.midi_dir) if f.endswith(".mid")]
-        self.midiListWidget.clear()  # Clear any existing items
+        self.midiListWidget.clear()  # Clear existing items
         for file in midi_files:
             item = QListWidgetItem(file)
             self.midiListWidget.addItem(item)
+
+    def populate_soundfont_list(self):
+        """Populate the SoundFont list widget with SoundFont files."""
+        soundfont_files = [f for f in os.listdir(self.soundfont_dir) if f.endswith(".sf2")]
+        self.soundFontListWidget.clear()  # Clear existing items
+        for file in soundfont_files:
+            item = QListWidgetItem(file)
+            self.soundFontListWidget.addItem(item)
 
     def play_midi(self, item):
         """Play the selected MIDI file."""
@@ -40,6 +55,16 @@ class MainWindow(QtWidgets.QMainWindow):
             pygame.mixer.music.play()
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Playback Error", f"Error playing {midi_file}: {e}")
+
+    def select_soundfont(self, item):
+        """Select the SoundFont file."""
+        soundfont_file = os.path.join(self.soundfont_dir, item.text())
+        try:
+            # Load the selected SoundFont (e.g., if using a library like fluidsynth)
+            print(f"Selected SoundFont: {soundfont_file}")
+            # Placeholder: Add integration with a library that supports SoundFonts
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "SoundFont Error", f"Error loading SoundFont: {e}")
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
